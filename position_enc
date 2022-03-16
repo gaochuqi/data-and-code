@@ -27,7 +27,23 @@ class NestedTensor(object):
 
     def __repr__(self):
         return str(self.tensors)
-        
+
+
+class Joiner(nn.Sequential):
+    def __init__(self, input, position_embedding):
+        super().__init__(input, position_embedding)
+
+    def forward(self, tensor_list: NestedTensor):
+        xs = self[0](tensor_list)
+        out: List[NestedTensor] = []
+        pos = []
+        for name, x in xs.items():
+            out.append(x)
+            # position encoding
+            pos.append(self[1](x).to(x.tensors.dtype))
+
+        return out, pos
+ 
 class PositionEmbeddingSine(nn.Module):
     """
     This is a more standard version of the position embedding, very similar to the one
@@ -65,3 +81,12 @@ class PositionEmbeddingSine(nn.Module):
         pos_y = torch.stack((pos_y[:, :, :, 0::2].sin(), pos_y[:, :, :, 1::2].cos()), dim=4).flatten(3)
         pos = torch.cat((pos_y, pos_x), dim=3).permute(0, 3, 1, 2)
         return pos
+        
+def Pos(input,N_steps):
+    
+    position_embedding = PositionEmbeddingSine(N_steps, normalize=True)
+    pos = Joiner(input, position_embedding)
+    
+    return pos
+    
+    
